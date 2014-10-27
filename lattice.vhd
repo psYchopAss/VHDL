@@ -18,9 +18,13 @@ use ieee.std_logic_Arith.all;
 
 entity lattice IS
 port(clk:in std_logic;
+     psw1:in std_logic;
+     pbtn0:in std_logic;
      colorr:out std_logic_vector(7 downto 0); --red display 
      colorg:out std_logic_vector(7 downto 0); --green 
-     list:out std_logic_vector(7 downto 0)    --judge
+     list:out std_logic_vector(7 downto 0);    --judge
+     dig1:out std_logic_vector(5 downto 0);    --dig 10
+     dig0:out std_logic_vector(5 downto 0)     --dig 1
      );
 end lattice;
 
@@ -32,54 +36,63 @@ architecture a of lattice IS
      signal count:std_logic_vector(3 downto 0);
      signal fcount:std_logic_vector(8 downto 0);
      signal btn0:std_logic;
+     signal dislist:std_logic_vector(7 downto 0);
+     signal discolorr:std_logic_vector(7 downto 0);
+     signal discolorg:std_logic_vector(7 downto 0);
+     signal mytime:std_logic_vector(5 downto 0);
+     signal control:std_logic;
+     --signal clear:std_logic; --initialize
 
 begin
-   start:process(btn0) 
-   begin    
-       if (btn0='0')then
-                          gstate0<= "00000000";--0
-                          gstate1<= "00000000";
-                          gstate2<= "00000000";
-                          gstate3<= "00000000";
-                          gstate4<= "00010000";
-                          gstate5<= "00111000";
-                          gstate6<= "01111100";
-                          gstate7<= "11111111";
-                          rstate0<= gstate7;
-                          rstate1<= gstate6;
-                          rstate2<= gstate5;
-                          rstate3<= gstate4;
-                          rstate4<= gstate3;
-                          rstate5<= gstate2;
-                          rstate6<= gstate1;
-                          rstate7<= gstate0;
-        end if;                   
-   end process start;                       
+     list<=dislist;
+     --btn0<=pbtn0;
+     sw1<=psw1;  
+   
+   start:process(btn0)
+   begin
+       if(pbtn0'event and pbtn0='1')then
+       control<=not(control);
+       --clear<='1';
+       end if;
+   end process start;       
+                                            
           
-   go:process(clk,sw1,btn0)
+   go:process(clk,sw1)
    begin   
-       if (clk='1' and sw1='0' and btn0='1')then
+       if (control='1')then 
+       if (clk='1' and clk'event and sw1='0')then
        fcount<=fcount+1;
-       end if;
        if (fcount>="111110100")then
+       if (count="1111")then
+       count<=count;
+       else
        count<=count+1;
+       mytime<=mytime+1;
        fcount<="000000000";
        end if;
-   end process go;
-      
-   re:process(clk,sw1,btn0)
-   begin  
-       if (clk='0' and sw1='1' and btn0='1')then
+       end if;
+       end if;
+       if (clk='1' and clk'event and sw1='1')then
        fcount<=fcount+1;
-       end if;
        if (fcount>="111110100")then
+       if (count="0000")then
+       count<=count;
+       else
        count<=count-1;
+       mytime<=mytime+1;
        fcount<="000000000";
        end if;
-   end process re;    
+       end if;
+       end if;
+       else 
+       count<=count;
+       end if;
+   end process go; 
+
 
    change:process(count)          
    begin
+                                                                 
        case count IS
            when"0000" =>  gstate0<= "00010000";--1
                           gstate1<= "00000000";
@@ -88,7 +101,7 @@ begin
                           gstate4<= "00010000";
                           gstate5<= "00111000";
                           gstate6<= "01111100";
-                          gstate7<= "11101111";
+                          gstate7<= "11101110";
                           rstate0<= gstate7;
                           rstate1<= gstate6;
                           rstate2<= gstate5;
@@ -353,5 +366,50 @@ begin
                           rstate6<= gstate1;
                           rstate7<= gstate0;
        end case;
-   end process change;                     
-end;  
+   end process change; 
+    
+                       
+   display:process(clk)
+   begin
+       if (clk='1'and clk'event)then
+          if (dislist="00000000")then
+              dislist<="01111111";
+          elsif (dislist="01111111")then
+              colorr<=rstate1;
+              colorg<=gstate1;
+              dislist<="10111111";
+          elsif (dislist="10111111")then
+              colorr<=rstate2;
+              colorg<=gstate2;
+              dislist<="11011111";
+          elsif (dislist="11011111")then
+              colorr<=rstate3;
+              colorg<=gstate3;
+              dislist<="11101111";
+          elsif (dislist="11101111")then
+              colorr<=rstate4;
+              colorg<=gstate4;
+              dislist<="11110111";
+          elsif (dislist="11110111")then
+              colorr<=rstate5;
+              colorg<=gstate5;
+              dislist<="11111011";
+          elsif (dislist="11111011")then
+              colorr<=rstate6;
+              colorg<=gstate6;
+              dislist<="11111101";
+          elsif (dislist="11111101")then
+              colorr<=rstate7;
+              colorg<=gstate7;
+              dislist<="11111110";
+          elsif (dislist="11111110")then
+              colorr<=rstate0;
+              colorg<=gstate0;
+              dislist<="01111111";
+          else
+              dislist<="00000000";
+          end if;
+       end if;
+   end process display;
+
+end;   
